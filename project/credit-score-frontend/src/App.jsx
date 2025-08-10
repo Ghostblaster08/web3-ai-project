@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import CreditScoreGauge from "./components/CreditScoreGauge";
+import "./App.css";
 
 function App() {
   const [account, setAccount] = useState(null);
@@ -49,21 +50,29 @@ function App() {
   };
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial" }}>
-      <h1>Crypto Credit Score</h1>
+    <div className="app-container">
+      <h1 className="main-title">Crypto Credit Score</h1>
 
-      {!account ? (
-        <button onClick={connectWallet}>Connect MetaMask</button>
-      ) : (
-        <p>Connected: {account}</p>
-      )}
+      <div className="card">
+        {!account ? (
+          <button className="primary-btn" onClick={connectWallet}>
+            Connect MetaMask
+          </button>
+        ) : (
+          <p className="connected-text">Connected: {account}</p>
+        )}
 
-      <button onClick={fetchScore} disabled={loading}>
-        {loading ? "Fetching..." : "Get My Credit Score"}
-      </button>
+        <button
+          className="primary-btn"
+          onClick={fetchScore}
+          disabled={loading}
+        >
+          {loading ? "Fetching..." : "Get My Credit Score"}
+        </button>
+      </div>
 
       {score !== null && (
-        <div style={{ marginTop: "30px" }}>
+        <div className="card gauge-container">
           <CreditScoreGauge score={score} label="Your Credit Score" />
         </div>
       )}

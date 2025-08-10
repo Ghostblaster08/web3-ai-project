@@ -1,71 +1,78 @@
-body {
-  font-family: Arial, sans-serif;
-  background-color: #f5f8ff;
+/* Reset default body/html styles */
+html, body {
   margin: 0;
   padding: 0;
+  height: 100%;
+  background-color: #f5f8ff;
+  font-family: Arial, sans-serif;
 }
 
-.app {
-  text-align: center;
-  padding: 20px;
-}
-
-.flex-container {
+/* Main layout container */
+.app-container {
   display: flex;
-  gap: 20px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-top: 20px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 100vh;
+  padding: 40px 20px;
+  box-sizing: border-box;
+  background-color: #f5f8ff;
 }
 
+/* Title */
+.main-title {
+  font-size: 2.5rem;
+  margin-bottom: 30px;
+  color: #222;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Card styling */
 .card {
   background: white;
-  padding: 20px;
+  padding: 25px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  max-width: 350px;
-  text-align: left;
-}
-
-.card h2 {
-  margin-bottom: 10px;
-}
-
-.card p {
-  margin-bottom: 15px;
-  color: #555;
-}
-
-input {
+  max-width: 400px;
   width: 100%;
-  padding: 10px;
-  margin-bottom: 12px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  margin-bottom: 20px;
+  text-align: center;
 }
 
+/* Connected account text */
+.connected-text {
+  margin: 15px 0;
+  font-weight: bold;
+  color: #333;
+  font-size: 0.95rem;
+  word-break: break-all; /* So long addresses wrap */
+}
+
+/* Buttons */
 .primary-btn {
   background-color: black;
   color: white;
-  padding: 10px 15px;
+  padding: 12px 18px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  font-size: 1rem;
+  width: 100%;
+  margin-top: 10px;
+  transition: background-color 0.2s ease-in-out;
 }
 
 .primary-btn:hover {
   background-color: #333;
 }
 
-.gauge-container {
-  text-align: center;
+.primary-btn:disabled {
+  background-color: #999;
+  cursor: not-allowed;
 }
 
-.status {
-  font-weight: bold;
-  color: green;
-  font-size: 18px;
+/* Gauge container */
+.gauge-container {
+  margin-top: 20px;
 }
