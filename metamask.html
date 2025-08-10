@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet Analyzer</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .input-group {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: monospace;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .result {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .connection-methods {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .method-card {
+            flex: 1;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .method-card h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .or-divider {
+            text-align: center;
+            margin: 20px 0;
+            position: relative;
+        }
+        .or-divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #ddd;
+        }
+        .or-divider span {
+            background: white;
+            padding: 0 15px;
+            color: #666;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>MetaMask Wallet Analyzer</h1>
+    
+    <div id="status">Choose a connection method below</div>
+    
+    <div class="connection-methods">
+        <div class="method-card">
+            <h3>🦊 Connect MetaMask</h3>
+            <p>Connect your MetaMask wallet directly</p>
+            <button id="connectBtn" onclick="connectWallet()">Connect MetaMask</button>
+        </div>
+        
+        <div class="method-card">
+            <h3>📝 Manual Input</h3>
+            <p>Enter any Ethereum address to analyze</p>
+            <button onclick="toggleManualInput()">Enter Address</button>
+        </div>
+    </div>
+    
+    <div id="manualInputSection" class="input-group" style="display: none;">
+        <label for="addressInput">Ethereum Address:</label>
+        <input 
+            type="text" 
+            id="addressInput" 
+            placeholder="0x742d35Cc6486C9A6B6f53df8e511731C6A96e671"
+            value=""
+        >
+        <button onclick="connectManualAddress()">Analyze This Address</button>
+        <button onclick="loadSampleAddress()">Load Sample Address</button>
+    </div>
+    
+    <div class="or-divider">
+        <span>OR</span>
+    </div>
+    
+    <button id="analyzeBtn" onclick="analyzeWallet()" disabled>Analyze Wallet</button>
+    <button id="downloadBtn" onclick="downloadData()" disabled>Download Transaction Data</button>
+    
+    <div id="walletInfo"></div>
+    <div id="results"></div>
+
+    <script>
+        let web3;
+        let currentAccount;
+        let transactionData = [];
+        let isMetaMaskConnected = false;
+
+        function toggleManualInput() {
+            const section = document.getElementById('manualInputSection');
+            section.style.display = section.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function loadSampleAddress() {
+            // Using the address from your transactions.json file
+            document.getElementById('addressInput').value = '0x40B38765696e3d5d8d9d834D8AaD4bB6e418E489';
+        }
+
+        function isValidEthereumAddress(address) {
+            return /^0x[a-fA-F0-9]{40}$/.test(address);
+        }
+
+        async function connectManualAddress() {
+            const addressInput = document.getElementById('addressInput');
+            const address = addressInput.value.trim();
+            
+            if (!address) {
+                document.getElementById('status').innerHTML = 
+                    '<div class="error">Please enter an Ethereum address</div>';
+                return;
+            }
+            
+            if (!isValidEthereumAddress(address)) {
+                document.getElementById('status').innerHTML = 
+                    '<div class="error">Invalid Ethereum address format</div>';
+                return;
+            }
+            
+            currentAccount = address;
+            isMetaMaskConnected = false;
+            
+            document.getElementById('status').innerHTML = 
+                `<div class="success">Manual Address Set: ${currentAccount}</div>`;
+            
+            document.getElementById('connectBtn').disabled = true;
+            document.getElementById('analyzeBtn').disabled = false;
+            
+            // Get basic wallet info (we'll need to use public APIs since we don't have MetaMask connection)
+            await getWalletInfoManual();
+        }
+
+        async function connectWallet() {
+            try {
+                // Check if MetaMask is installed
+                if (typeof window.ethereum !== 'undefined') {
+                    // Request account access
+                    const accounts = await window.ethereum.request({ 
+                        method: 'eth_requestAccounts' 
+                    });
+                    
+                    web3 = new Web3(window.ethereum);
+                    currentAccount = accounts[0];
+                    isMetaMaskConnected = true;
+                    
+                    document.getElementById('status').innerHTML = 
+                        `<div class="success">Connected to MetaMask: ${currentAccount}</div>`;
+                    
+                    document.getElementById('connectBtn').disabled = true;
+                    document.getElementById('analyzeBtn').disabled = false;
+                    
+                    // Get basic wallet info
+                    await getWalletInfo();
+                    
+                } else {
+                    document.getElementById('status').innerHTML = 
+                        '<div class="error">MetaMask is not installed. Please install MetaMask browser extension or use manual input.</div>';
+                }
+            } catch (error) {
+                console.error('Error connecting to MetaMask:', error);
+                document.getElementById('status').innerHTML = 
+                    `<div class="error">Error connecting to MetaMask: ${error.message}</div>`;
+            }
+        }
+
+        async function getWalletInfo() {
+            try {
+                // Get balance
+                const balance = await web3.eth.getBalance(currentAccount);
+                const ethBalance = web3.utils.fromWei(balance, 'ether');
+                
+                // Get network
+                const networkId = await web3.eth.net.getId();
+                const networks = {
+                    1: "Ethereum Mainnet",
+                    3: "Ropsten Testnet", 
+                    4: "Rinkeby Testnet",
+                    5: "Goerli Testnet",
+                    11155111: "Sepolia Testnet"
+                };
+                
+                document.getElementById('walletInfo').innerHTML = `
+                    <div class="result">
+                        <h3>Wallet Information</h3>
+                        <p><strong>Address:</strong> ${currentAccount}</p>
+                        <p><strong>Balance:</strong> ${parseFloat(ethBalance).toFixed(6)} ETH</p>
+                        <p><strong>Network:</strong> ${networks[networkId] || `Unknown (${networkId})`}</p>
+                        <p><strong>Connection:</strong> MetaMask</p>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error getting wallet info:', error);
+            }
+        }
+
+        async function getWalletInfoManual() {
+            try {
+                // Get balance using Etherscan API
+                const apiKey = 'FP5WF72RTG6T4P8C21MUFFQATVSSGMYC6X';
+                
+                const balanceResponse = await fetch(`https://api.etherscan.io/api?module=account&action=balance&address=${currentAccount}&tag=latest&apikey=${apiKey}`);
+                const balanceData = await balanceResponse.json();
+                
+                let ethBalance = "0";
+                if (balanceData.status === "1") {
+                    const weiBalance = balanceData.result;
+                    ethBalance = (parseInt(weiBalance) / Math.pow(10, 18)).toFixed(6);
+                }
+                
+                document.getElementById('walletInfo').innerHTML = `
+                    <div class="result">
+                        <h3>Wallet Information</h3>
+                        <p><strong>Address:</strong> ${currentAccount}</p>
+                        <p><strong>Balance:</strong> ${ethBalance} ETH</p>
+                        <p><strong>Network:</strong> Ethereum Mainnet</p>
+                        <p><strong>Connection:</strong> Manual Input</p>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error getting wallet info:', error);
+                document.getElementById('walletInfo').innerHTML = `
+                    <div class="result">
+                        <h3>Wallet Information</h3>
+                        <p><strong>Address:</strong> ${currentAccount}</p>
+                        <p><strong>Balance:</strong> Unable to fetch</p>
+                        <p><strong>Network:</strong> Ethereum Mainnet</p>
+                        <p><strong>Connection:</strong> Manual Input</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function analyzeWallet() {
+            try {
+                document.getElementById('analyzeBtn').disabled = true;
+                document.getElementById('results').innerHTML = '<div>Fetching transaction data...</div>';
+                
+                const apiKey = 'FP5WF72RTG6T4P8C21MUFFQATVSSGMYC6X';
+                
+                const response = await fetch(`https://api.etherscan.io/api?module=account&action=txlist&address=${currentAccount}&startblock=0&endblock=99999999&sort=asc&apikey=${apiKey}`);
+                const data = await response.json();
+                
+                if (data.status === "1") {
+                    transactionData = data.result;
+                    
+                    // Perform analysis
+                    const analysis = performAnalysis(transactionData);
+                    displayAnalysis(analysis);
+                    
+                    document.getElementById('downloadBtn').disabled = false;
+                } else {
+                    throw new Error(data.message || 'Failed to fetch transactions');
+                }
+                
+            } catch (error) {
+                console.error('Error analyzing wallet:', error);
+                document.getElementById('results').innerHTML = 
+                    `<div class="error">Error: ${error.message}</div>`;
+            } finally {
+                document.getElementById('analyzeBtn').disabled = false;
+            }
+        }
+
+        function performAnalysis(transactions) {
+            // Portfolio Diversity
+            const tokenCounts = {};
+            let ethTotal = 0;
+            
+            transactions.forEach(tx => {
+                const value = parseFloat(tx.value);
+                if (value > 0) {
+                    ethTotal += value;
+                    tokenCounts['ETH'] = (tokenCounts['ETH'] || 0) + value;
+                }
+                
+                if (tx.functionName && tx.functionName.includes('transfer')) {
+                    tokenCounts[tx.to] = (tokenCounts[tx.to] || 0) + 1;
+                }
+            });
+            
+            const uniqueTokens = Object.keys(tokenCounts).length;
+            const totalValue = Object.values(tokenCounts).reduce((a, b) => a + b, 0);
+            const hhi = totalValue > 0 ? Object.values(tokenCounts).reduce((sum, value) => sum + Math.pow(value/totalValue, 2), 0) : 0;
+            const diversityScore = totalValue > 0 ? 1 - hhi : 0;
+            
+            // Account Age
+            const timestamps = transactions.map(tx => parseInt(tx.timeStamp) * 1000);
+            const firstTx = timestamps.length > 0 ? new Date(Math.min(...timestamps)) : null;
+            const accountAge = firstTx ? Math.floor((Date.now() - firstTx.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+            
+            // Activity Frequency
+            const dates = timestamps.map(ts => new Date(ts).toDateString());
+            const dateCounts = {};
+            dates.forEach(date => {
+                dateCounts[date] = (dateCounts[date] || 0) + 1;
+            });
+            
+            const totalTxs = transactions.length;
+            const avgDaily = accountAge > 0 ? totalTxs / accountAge : 0;
+            
+            const now = new Date();
+            const last7Days = transactions.filter(tx => (now - new Date(parseInt(tx.timeStamp) * 1000)) / (1000 * 60 * 60 * 24) <= 7).length;
+            const last30Days = transactions.filter(tx => (now - new Date(parseInt(tx.timeStamp) * 1000)) / (1000 * 60 * 60 * 24) <= 30).length;
+            const last90Days = transactions.filter(tx => (now - new Date(parseInt(tx.timeStamp) * 1000)) / (1000 * 60 * 60 * 24) <= 90).length;
+            
+            return {
+                portfolioDiversity: {
+                    diversityScore: diversityScore.toFixed(3),
+                    uniqueTokens: uniqueTokens,
+                    tokenDistribution: tokenCounts
+                },
+                accountAge: {
+                    accountAgeDays: accountAge,
+                    firstTransaction: firstTx ? firstTx.toISOString() : null
+                },
+                activityFrequency: {
+                    totalTransactions: totalTxs,
+                    avgDailyTransactions: avgDaily.toFixed(2),
+                    activityPeriods: {
+                        last7Days: last7Days,
+                        last30Days: last30Days,
+                        last90Days: last90Days
+                    }
+                }
+            };
+        }
+
+        function displayAnalysis(analysis) {
+            const resultsHtml = `
+                <div class="result">
+                    <h3>Wallet Analysis Results</h3>
+                    <p><strong>Portfolio Diversity Score:</strong> ${analysis.portfolioDiversity.diversityScore}</p>
+                    <p><strong>Unique Tokens/Contracts:</strong> ${analysis.portfolioDiversity.uniqueTokens}</p>
+                    <p><strong>Account Age:</strong> ${analysis.accountAge.accountAgeDays} days</p>
+                    <p><strong>Total Transactions:</strong> ${analysis.activityFrequency.totalTransactions}</p>
+                    <p><strong>Average Daily Transactions:</strong> ${analysis.activityFrequency.avgDailyTransactions}</p>
+                    <p><strong>Recent Activity:</strong></p>
+                    <ul>
+                        <li>Last 7 days: ${analysis.activityFrequency.activityPeriods.last7Days} transactions</li>
+                        <li>Last 30 days: ${analysis.activityFrequency.activityPeriods.last30Days} transactions</li>
+                        <li>Last 90 days: ${analysis.activityFrequency.activityPeriods.last90Days} transactions</li>
+                    </ul>
+                </div>
+            `;
+            
+            document.getElementById('results').innerHTML = resultsHtml;
+        }
+
+        function downloadData() {
+            const dataToDownload = {
+                address: currentAccount,
+                timestamp: new Date().toISOString(),
+                connectionMethod: isMetaMaskConnected ? 'MetaMask' : 'Manual',
+                transactions: transactionData
+            };
+            
+            const blob = new Blob([JSON.stringify(dataToDownload, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `wallet_data_${currentAccount}.json`;
+            a.click();
+        }
+
+        // Check if MetaMask is already connected
+        window.addEventListener('load', async () => {
+            if (typeof window.ethereum !== 'undefined') {
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                if (accounts.length > 0) {
+                    web3 = new Web3(window.ethereum);
+                    currentAccount = accounts[0];
+                    isMetaMaskConnected = true;
+                    document.getElementById('status').innerHTML = 
+                        `<div class="success">Already connected to MetaMask: ${currentAccount}</div>`;
+                    document.getElementById('connectBtn').disabled = true;
+                    document.getElementById('analyzeBtn').disabled = false;
+                    await getWalletInfo();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
