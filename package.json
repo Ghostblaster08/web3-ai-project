@@ -10,6 +10,14 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "@nomiclabs/hardhat-etherscan": "^3.1.8",
     "hardhat": "^2.26.2"
+  },
+  "dependencies": {
+    "@metamask/sdk": "^0.33.0",
+    "axios": "^1.11.0",
+    "dotenv": "^17.2.1",
+    "web3": "^4.16.0"
   }
 }
