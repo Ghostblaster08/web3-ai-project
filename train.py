@@ -19,7 +19,7 @@ FEATURES = [
 	'total_transactions',
 ]
 # Load the CSV data
-csv_path = 'Dataset/aave_active_users_2025-08-10.csv'
+csv_path = 'Dataset/maximal_aave_users_1889_unique_2025-08-10.csv'
 df = pd.read_csv(csv_path)
 # Keep only relevant features and drop rows with missing values in these columns
 df = df[FEATURES].copy()
@@ -51,9 +51,9 @@ def assign_credit_scores(subdf):
 	# Rank users within cluster
 	subdf = subdf.copy()
 	subdf['rank'] = subdf['score_raw'].rank(ascending=False, method='min')
-	# Map rank to credit score (0-100)
+	# Map rank to credit score (300-850)
 	n = len(subdf)
-	subdf['credit_score'] = 0 + (100 - 0) * (n - subdf['rank']) / (n-1) if n > 1 else 100
+	subdf['credit_score'] = 300 + (850 - 300) * (n - subdf['rank']) / (n-1) if n > 1 else 850
 	return subdf
 df = df.groupby('cluster', group_keys=False).apply(assign_credit_scores)
 # Save results
