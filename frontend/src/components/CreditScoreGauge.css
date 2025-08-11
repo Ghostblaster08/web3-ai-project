@@ -1,0 +1,40 @@
+.credit-score-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 20px 0;
+}
+
+.speedometer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0;
+}
+
+.score-display {
+  position: absolute;
+  bottom: 30px;
+  text-align: center;
+}
+
+.score-number {
+  font-size: 2.5em;
+  font-weight: bold;
+  margin-bottom: 5px;
+  text-shadow: 0 0 10px currentColor;
+}
+
+.score-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9em;
+  margin-bottom: 5px;
+}
+
+.score-grade {
+  font-size: 1.1em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
