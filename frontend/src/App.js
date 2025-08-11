@@ -166,8 +166,8 @@ function App() {
       const analysis = performWalletAnalysis(txData.transactions || []);
       setWalletAnalysis(analysis);
       
-      // Calculate credit score
-      const score = calculateCreditScore(analysis, aaveInfo);
+      // Calculate credit score using ML model
+      const score = await calculateCreditScore(analysis, aaveInfo);
       setCreditScore(score);
       
     } catch (err) {
@@ -313,7 +313,60 @@ function App() {
     };
   };
 
-  const calculateCreditScore = (walletAnalysis, aaveAnalysis) => {
+  const calculateCreditScore = async (walletAnalysis, aaveAnalysis) => {
+    try {
+      // Prepare features for ML model
+      const features = prepareMLFeatures(walletAnalysis, aaveAnalysis);
+      
+      // Call backend API
+      const response = await fetch('http://localhost:5000/predict-credit-score', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(features)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to get credit score prediction');
+      }
+      
+      const result = await response.json();
+      return result.credit_score;
+      
+    } catch (error) {
+      console.error('Error getting ML credit score:', error);
+      // Fallback to manual calculation if API fails
+      return calculateCreditScoreManual(walletAnalysis, aaveAnalysis);
+    }
+  };
+
+  const prepareMLFeatures = (walletAnalysis, aaveAnalysis) => {
+    // Calculate repayment ratio (if available from Aave data)
+    const repayment_ratio = aaveAnalysis && aaveAnalysis.totalCollateralETH > 0 
+      ? Math.min(1, aaveAnalysis.totalCollateralETH / (aaveAnalysis.totalDebtETH || 1))
+      : 1;
+
+    // Calculate liquidation ratio
+    const liquidation_ratio = aaveAnalysis && aaveAnalysis.totalDebtETH > 0
+      ? aaveAnalysis.totalCollateralETH / aaveAnalysis.totalDebtETH
+      : 1;
+
+    return {
+      repayment_ratio: repayment_ratio,
+      liquidation_ratio: liquidation_ratio,
+      total_borrowed: aaveAnalysis?.totalDebtETH || 0,
+      portfolio_diversity: parseFloat(walletAnalysis?.portfolioDiversity?.diversityScore || 0),
+      account_age_days: walletAnalysis?.accountAge?.accountAgeDays || 0,
+      activity_frequency: parseFloat(walletAnalysis?.activityFrequency?.avgDailyTransactions || 0),
+      total_collateral: aaveAnalysis?.totalCollateralETH || 0,
+      unique_tokens: walletAnalysis?.portfolioDiversity?.uniqueTokens || 0,
+      total_transactions: walletAnalysis?.activityFrequency?.totalTransactions || 0
+    };
+  };
+
+  // Keep the original function as fallback
+  const calculateCreditScoreManual = (walletAnalysis, aaveAnalysis) => {
     let score = 500; // Base score
 
     if (walletAnalysis) {
