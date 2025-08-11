@@ -413,35 +413,6 @@ function App() {
     return Math.max(300, Math.min(850, Math.round(score)));
   };
 
-  const downloadData = () => {
-    const data = {
-      address: currentAccount,
-      creditScore,
-      walletAnalysis,
-      transactionData,
-      aaveData,
-      timestamp: new Date().toISOString()
-    };
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `wallet-analysis-${currentAccount}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const loadSampleAddress = () => {
-    setManualAddress('0x40B38765696e3d5d8d9d834D8AaD4bB6e418E489');
-  };
-
-  const loadActiveAaveAddress = () => {
-    setManualAddress('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045');
-  };
-
   return (
     <div className="App">
       {/* 3D Background */}
@@ -472,8 +443,6 @@ function App() {
               setManualAddress={setManualAddress}
               analyzeManualAddress={analyzeManualAddress}
               isLoading={isLoading}
-              loadSampleAddress={loadSampleAddress}
-              loadActiveAaveAddress={loadActiveAaveAddress}
             />
           </div>
 
@@ -489,17 +458,17 @@ function App() {
             </button>
           </div>
 
-          {/* Credit Score Display */}
+          {/* Credit Score Display - Smaller */}
           {creditScore > 0 && (
-            <div className="glass-panel credit-score-panel">
-              <h2>Credit Score</h2>
+            <div className="glass-panel credit-score-panel-small">
+              <h3>Credit Score</h3>
               <CreditScoreGauge score={creditScore} />
             </div>
           )}
 
-          {/* Wallet Analysis Display */}
+          {/* Side by Side Analysis - Wallet Analysis */}
           {walletAnalysis && (
-            <div className="glass-panel">
+            <div className="glass-panel analysis-panel">
               <h2>📊 Wallet Analysis</h2>
               <div className="data-display">
                 <p><strong>Portfolio Diversity Score:</strong> {walletAnalysis.portfolioDiversity.diversityScore}</p>
@@ -518,9 +487,9 @@ function App() {
             </div>
           )}
 
-          {/* Aave Data Display */}
+          {/* Side by Side Analysis - Aave Data */}
           {aaveData && (
-            <div className="glass-panel">
+            <div className="glass-panel analysis-panel">
               <h2>🏦 Aave Position Analysis</h2>
               <div className="data-display">
                 <div className={`aave-status ${aaveData.hasActivePosition ? 'aave-active' : 'aave-inactive'}`}>
@@ -553,16 +522,6 @@ function App() {
                 <p><strong>Total Gas Used:</strong> {transactionData.totalGasUsed?.toLocaleString()}</p>
                 <p><strong>Average Gas Price:</strong> {Math.round(transactionData.avgGasPrice / 1e9)} Gwei</p>
               </div>
-            </div>
-          )}
-
-          {/* Download Section */}
-          {(transactionData || aaveData) && (
-            <div className="glass-panel">
-              <h2>Export Data</h2>
-              <button onClick={downloadData} className="download-btn">
-                📥 Download Analysis Data
-              </button>
             </div>
           )}
         </div>
